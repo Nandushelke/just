@@ -14,6 +14,8 @@ from speech_analysis import SpeechEmotionAnalyzer
 from face_analysis import FaceAnalyzer
 from mood_predictor import MoodPredictor
 from recommender import Recommender
+from datasets_util import download_dataset  # NEW
+from datasets_direct import download_direct  # NEW
 
 
 st.set_page_config(page_title="Multi-Modal Emotion & Age", layout="wide")
@@ -29,6 +31,41 @@ def add_diary_entry(entry: Dict[str, Any]) -> None:
 st.title("Multi-Modal Sentiment, Emotion, Mood, and Age Detection")
 
 with st.sidebar:
+    st.header("Datasets")
+    st.caption("Download sample datasets into the data/ folder")
+    ds_imdb = st.checkbox("IMDB (sentiment)", value=False)
+    ds_emotion = st.checkbox("Emotion (text emotions)", value=False)
+    ds_goemotions = st.checkbox("GoEmotions (fallback, direct)", value=False)
+    ds_rtp = st.checkbox("RT-Polarity (fallback, direct)", value=False)
+    if st.button("Download Selected Datasets"):
+        with st.spinner("Downloading datasets…"):
+            results = []
+            err_msgs = []
+            # Try HF datasets first
+            try:
+                if ds_imdb:
+                    results.append(download_dataset("imdb"))
+                if ds_emotion:
+                    results.append(download_dataset("emotion"))
+            except Exception as e:
+                err_msgs.append(f"HF datasets error: {e}")
+            # Direct fallbacks
+            try:
+                if ds_goemotions:
+                    results.append(download_direct("goemotions"))
+                if ds_rtp:
+                    results.append(download_direct("rt_polarity"))
+            except Exception as e:
+                err_msgs.append(f"Direct download error: {e}")
+
+            if results:
+                st.success("Datasets downloaded")
+                st.json(results)
+            if err_msgs and not results:
+                st.error("; ".join(err_msgs))
+            elif err_msgs:
+                st.warning("; ".join(err_msgs))
+
     st.header("Inputs")
     input_text = st.text_area("Text", placeholder="Type something to analyze…")
     audio_file = st.file_uploader("Speech (WAV/MP3)", type=["wav", "mp3", "ogg"])
